@@ -1,54 +1,67 @@
-import streamlit as st
-from keras.models import load_model
-import pickle
+# Import Library
+import re
+import random
 import numpy as np
+import pickle
+import streamlit as st
+from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+import string
 
-# Load the model and variables
-chatbot_model = load_model('/content/model.h5')
-tokenizer = pickle.load(open('/content/tokenizer.pkl','rb'))
-max_sequence_length = pickle.load(open('/content/max_sequence_length.pkl','rb'))
-le = pickle.load(open('/content/le.pkl','rb'))
-responses = pickle.load(open('/content/responses.pkl','rb'))
+# Memuat Model dan Parameter yang Telah Disimpan
+model_path = '/content/model.h5'  # Sesuaikan dengan path model Anda
+tokenizer_path = '/content/tokenizer.pkl'
+max_seq_length_path = '/content/max_sequence_length.pkl'
+label_encoder_path = '/content/le.pkl'
+responses_path = '/content/responses.pkl'
 
-# Streamlit app
-st.title("ChatbotX")
+chatbot_model = load_model(model_path)  # Memuat model
+tokenizer = pickle.load(open(tokenizer_path, 'rb'))  # Memuat tokenizer
+max_sequence_length = pickle.load(open(max_seq_length_path, 'rb'))  # Memuat panjang maksimum urutan
+label_encoder = pickle.load(open(label_encoder_path, 'rb'))  # Memuat label encoder
+responses = pickle.load(open(responses_path, 'rb'))  # Memuat respons bot
 
-# Initialize chat history
+# Aplikasi Streamlit
+st.title("Mental Health ChatBot")
+st.write("Say Hi to MentalHealth ChatBot")
+
+# Menyimpan histori chat
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat messages from history on app rerun
+# Menampilkan histori
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# React to user input
-if prompt := st.chat_input("Apa yang ingin Anda tanyakan?"):
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    # Display user message in chat message container
-    with st.chat_message("user"):
-        st.markdown(prompt)
+# Input pengguna
+prompt = st.chat_input("Type your chat here")
 
-    # Preprocess user input
-    texts_p = []
-    prediction_input = prompt
-    prediction_input = [letters.lower() for letters in prediction_input if letters not in string.punctuation]
+if prompt:
+    # Preprocessing input pengguna
+    prediction_input = [letters.lower() for letters in prompt if letters not in string.punctuation]
     prediction_input = ''.join(prediction_input)
-    texts_p.append(prediction_input)
+    texts_p = [prediction_input]
+    
+    # Tokenisasi dan padding
     prediction_input = tokenizer.texts_to_sequences(texts_p)
     prediction_input = np.array(prediction_input).reshape(-1)
-    prediction_input = pad_sequences([prediction_input], max_sequence_length)
-
-    # Get model prediction
+    prediction_input = pad_sequences([prediction_input], maxlen=max_sequence_length)
+    
+    # Prediksi tag
     output = chatbot_model.predict(prediction_input)
     output = output.argmax()
-    response_tag = le.inverse_transform([output])[0]
-    response = random.choice(responses[response_tag])
-
-    # Add bot message to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
-    # Display bot message in chat message container
+    
+    # Mendapatkan respons berdasarkan tag
+    response_tag = label_encoder.inverse_transform([output])[0]
+    bot_response = random.choice(responses[response_tag]) if response_tag in responses else "I'm not sure I understand."
+    
+    # Menampilkan chat
+    with st.chat_message("user"):
+        st.write(prompt)
     with st.chat_message("assistant"):
-        st.markdown(response)
+        st.write(bot_response)
+    
+    # Menyimpan histori chat
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role": "assistant", "content": bot_response})
