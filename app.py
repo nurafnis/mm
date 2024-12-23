@@ -1,49 +1,54 @@
 import streamlit as st
-import numpy as np
-import pickle
-import random
-import string
 from keras.models import load_model
+import pickle
+import numpy as np
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-# Load model dan objek yang diperlukan
-chatbot_model = load_model('model.h5')
-tokenizer = pickle.load(open('tokenizer.pkl', 'rb'))
-max_sequence_length = pickle.load(open('max_sequence_length.pkl', 'rb'))
-le = pickle.load(open('le.pkl', 'rb'))
-responses = pickle.load(open('responses.pkl', 'rb'))
+# Load the model and variables
+chatbot_model = load_model('/content/model.h5')
+tokenizer = pickle.load(open('/content/tokenizer.pkl','rb'))
+max_sequence_length = pickle.load(open('/content/max_sequence_length.pkl','rb'))
+le = pickle.load(open('/content/le.pkl','rb'))
+responses = pickle.load(open('/content/responses.pkl','rb'))
 
-# Header aplikasi
-st.title("🤖 Chatbot")
-st.markdown("Berbicara dengan Chatbot yang cerdas! Ketik pesanmu di bawah.")
+# Streamlit app
+st.title("ChatbotX")
 
-# Input pengguna
-user_input = st.text_input("👨‍🦰 Kamu:", "")
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-if st.button("Kirim") and user_input:
-    # Preprocessing input
-    prediction_input = [letters.lower() for letters in user_input if letters not in string.punctuation]
+# Display chat messages from history on app rerun
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# React to user input
+if prompt := st.chat_input("Apa yang ingin Anda tanyakan?"):
+    # Add user message to chat history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    # Display user message in chat message container
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Preprocess user input
+    texts_p = []
+    prediction_input = prompt
+    prediction_input = [letters.lower() for letters in prediction_input if letters not in string.punctuation]
     prediction_input = ''.join(prediction_input)
-    
-    # Tokenisasi dan padding
-    prediction_input = tokenizer.texts_to_sequences([prediction_input])
+    texts_p.append(prediction_input)
+    prediction_input = tokenizer.texts_to_sequences(texts_p)
     prediction_input = np.array(prediction_input).reshape(-1)
     prediction_input = pad_sequences([prediction_input], max_sequence_length)
 
-    # Prediksi respons
+    # Get model prediction
     output = chatbot_model.predict(prediction_input)
     output = output.argmax()
+    response_tag = le.inverse_transform([output])[0]
+    response = random.choice(responses[response_tag])
 
-    # Temukan tag respons
-    # Mendapatkan respons bot dengan validasi
-if response_tag in responses and len(responses[response_tag]) > 0:
-    bot_response = random.choice(responses[response_tag])
-else:
-    bot_response = "I'm sorry, I didn't understand that."
-    
-    # Tampilkan hasil
-    st.text_area("🤖 Chatbot:", bot_response, height=100)
-
-    # Periksa jika pengguna ingin keluar
-    if response_tag == "goodbye":
-        st.stop()
+    # Add bot message to chat history
+    st.session_state.messages.append({"role": "assistant", "content": response})
+    # Display bot message in chat message container
+    with st.chat_message("assistant"):
+        st.markdown(response)
