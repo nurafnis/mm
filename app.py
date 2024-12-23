@@ -22,8 +22,8 @@ label_encoder = pickle.load(open(label_encoder_path, 'rb'))  # Memuat label enco
 responses = pickle.load(open(responses_path, 'rb'))  # Memuat respons bot
 
 # Aplikasi Streamlit
-st.title("Mental Health ChatBot")
-st.write("Say Hi to MentalHealth ChatBot")
+st.title("MentalMate ChatBot")
+st.write("Say Hi to MentalMate ChatBot")
 
 # Menyimpan histori chat
 if "messages" not in st.session_state:
