@@ -9,11 +9,11 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 import string
 
 # Memuat Model dan Parameter yang Telah Disimpan
-model_path = '/content/model.h5'  # Sesuaikan dengan path model Anda
-tokenizer_path = '/content/tokenizer.pkl'
-max_seq_length_path = '/content/max_sequence_length.pkl'
-label_encoder_path = '/content/le.pkl'
-responses_path = '/content/responses.pkl'
+model_path = 'model.h5'  # Sesuaikan dengan path model Anda
+tokenizer_path = 'tokenizer.pkl'
+max_seq_length_path = 'max_sequence_length.pkl'
+label_encoder_path = 'le.pkl'
+responses_path = 'responses.pkl'
 
 chatbot_model = load_model(model_path)  # Memuat model
 tokenizer = pickle.load(open(tokenizer_path, 'rb'))  # Memuat tokenizer
